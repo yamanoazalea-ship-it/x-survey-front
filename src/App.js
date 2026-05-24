@@ -56,6 +56,12 @@ export default function App() {
     printWindow.print();
   };
 
+  const goToIdea = () => {
+    setInput(result);
+    setResult("");
+    setMode("idea");
+  };
+
   return (
     <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 20px", fontFamily: "sans-serif" }}>
       <h1 style={{ fontSize: 24, marginBottom: 8 }}>📡 X Survey App</h1>
@@ -125,6 +131,23 @@ export default function App() {
           <div style={{ padding: 20, backgroundColor: "#f9fafb", borderRadius: 8, border: "1px solid #e5e7eb", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
             {result}
           </div>
+          {mode !== "idea" && (
+            <button
+              onClick={goToIdea}
+              style={{
+                marginTop: 12,
+                padding: "10px 24px",
+                backgroundColor: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 16,
+                cursor: "pointer",
+              }}
+            >
+              このままネタ生成へ →
+            </button>
+          )}
         </div>
       )}
     </div>
