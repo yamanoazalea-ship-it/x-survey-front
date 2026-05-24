@@ -131,7 +131,7 @@ export default function App() {
           <div style={{ padding: 20, backgroundColor: "#f9fafb", borderRadius: 8, border: "1px solid #e5e7eb", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
             {result}
           </div>
-          {mode !== "idea" && (
+          {["trend", "account", "keyword"].includes(mode) && (
             <button
               onClick={goToIdea}
               style={{
