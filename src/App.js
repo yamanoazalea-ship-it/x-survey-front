@@ -29,6 +29,7 @@ export default function App() {
       return [];
     }
   });
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     try {
@@ -104,6 +105,18 @@ export default function App() {
 
   const deleteHistoryEntry = (id) => {
     setHistory((prev) => prev.filter((h) => h.id !== id));
+  };
+
+  const copyHistoryResult = async (id, text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => {
+        setCopiedId((current) => (current === id ? null : current));
+      }, 1500);
+    } catch {
+      // ignore clipboard errors
+    }
   };
 
   const clearAllHistory = () => {
@@ -226,27 +239,42 @@ export default function App() {
                   position: "relative",
                 }}
               >
-                <button
-                  onClick={() => deleteHistoryEntry(h.id)}
-                  title="この履歴を削除"
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    border: "1px solid #d1d5db",
-                    backgroundColor: "white",
-                    color: "#6b7280",
-                    cursor: "pointer",
-                    fontSize: 14,
-                    lineHeight: 1,
-                  }}
-                >
-                  ×
-                </button>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, paddingRight: 36 }}>
+                <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6, alignItems: "center" }}>
+                  <button
+                    onClick={() => copyHistoryResult(h.id, h.result)}
+                    title="結果をコピー"
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      border: "1px solid #d1d5db",
+                      backgroundColor: copiedId === h.id ? "#d1fae5" : "white",
+                      color: copiedId === h.id ? "#065f46" : "#374151",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {copiedId === h.id ? "✅ コピー済み" : "📋 コピー"}
+                  </button>
+                  <button
+                    onClick={() => deleteHistoryEntry(h.id)}
+                    title="この履歴を削除"
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      border: "1px solid #d1d5db",
+                      backgroundColor: "white",
+                      color: "#6b7280",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, paddingRight: 140 }}>
                   <span style={{ fontWeight: "bold", fontSize: 14 }}>{h.modeLabel}</span>
                   <span style={{ color: "#6b7280", fontSize: 12 }}>{formatTimestamp(h.timestamp)}</span>
                 </div>
