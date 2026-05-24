@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const MODES = [
   { key: "trend", label: "🔥 トレンド分析" },
@@ -14,11 +14,41 @@ const PLACEHOLDERS = {
   idea: "前の分析結果をここに貼り付けてください",
 };
 
+const HISTORY_KEY = "surveyHistory";
+
 export default function App() {
   const [mode, setMode] = useState("trend");
   const [input, setInput] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      // ignore quota errors
+    }
+  }, [history]);
+
+  const handleModeChange = (newMode) => {
+    if (newMode === "idea") {
+      if (result) {
+        setInput(result);
+      }
+    } else {
+      setInput("");
+    }
+    setResult("");
+    setMode(newMode);
+  };
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -32,6 +62,15 @@ export default function App() {
       });
       const data = await res.json();
       setResult(data.result);
+      const entry = {
+        id: Date.now(),
+        mode,
+        modeLabel: MODES.find((m) => m.key === mode)?.label || mode,
+        input,
+        result: data.result,
+        timestamp: new Date().toISOString(),
+      };
+      setHistory((prev) => [entry, ...prev]);
     } catch (e) {
       setResult("エラーが発生しました。バックエンドが起動しているか確認してください。");
     }
@@ -56,10 +95,20 @@ export default function App() {
     printWindow.print();
   };
 
-  const goToIdea = () => {
-    setInput(result);
-    setResult("");
-    setMode("idea");
+  const deleteHistoryEntry = (id) => {
+    setHistory((prev) => prev.filter((h) => h.id !== id));
+  };
+
+  const clearAllHistory = () => {
+    if (window.confirm("すべての履歴を削除しますか？")) {
+      setHistory([]);
+    }
+  };
+
+  const formatTimestamp = (iso) => {
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
   return (
@@ -71,7 +120,7 @@ export default function App() {
         {MODES.map((m) => (
           <button
             key={m.key}
-            onClick={() => { setMode(m.key); setInput(""); setResult(""); }}
+            onClick={() => handleModeChange(m.key)}
             style={{
               padding: "8px 16px",
               borderRadius: 8,
@@ -131,25 +180,94 @@ export default function App() {
           <div style={{ padding: 20, backgroundColor: "#f9fafb", borderRadius: 8, border: "1px solid #e5e7eb", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
             {result}
           </div>
-          {["trend", "account", "keyword"].includes(mode) && (
+        </div>
+      )}
+
+      <div style={{ marginTop: 48, borderTop: "1px solid #e5e7eb", paddingTop: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, margin: 0 }}>🗂 履歴（{history.length}件）</h2>
+          {history.length > 0 && (
             <button
-              onClick={goToIdea}
+              onClick={clearAllHistory}
               style={{
-                marginTop: 12,
-                padding: "10px 24px",
-                backgroundColor: "#2563eb",
-                color: "white",
-                border: "none",
+                padding: "6px 12px",
                 borderRadius: 8,
-                fontSize: 16,
+                border: "1px solid #ef4444",
+                backgroundColor: "white",
+                color: "#ef4444",
                 cursor: "pointer",
+                fontSize: 14,
               }}
             >
-              このままネタ生成へ →
+              履歴をすべて削除
             </button>
           )}
         </div>
-      )}
+
+        {history.length === 0 ? (
+          <p style={{ color: "#9ca3af", fontSize: 14 }}>履歴はまだありません。</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {history.map((h) => (
+              <div
+                key={h.id}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  padding: 12,
+                  backgroundColor: "#fff",
+                  position: "relative",
+                }}
+              >
+                <button
+                  onClick={() => deleteHistoryEntry(h.id)}
+                  title="この履歴を削除"
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    border: "1px solid #d1d5db",
+                    backgroundColor: "white",
+                    color: "#6b7280",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    lineHeight: 1,
+                  }}
+                >
+                  ×
+                </button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, paddingRight: 36 }}>
+                  <span style={{ fontWeight: "bold", fontSize: 14 }}>{h.modeLabel}</span>
+                  <span style={{ color: "#6b7280", fontSize: 12 }}>{formatTimestamp(h.timestamp)}</span>
+                </div>
+                <div style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>
+                  <span style={{ color: "#6b7280" }}>入力：</span>
+                  {h.input}
+                </div>
+                <details>
+                  <summary style={{ cursor: "pointer", fontSize: 13, color: "#2563eb" }}>結果を表示</summary>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: 12,
+                      backgroundColor: "#f9fafb",
+                      borderRadius: 6,
+                      whiteSpace: "pre-wrap",
+                      lineHeight: 1.7,
+                      fontSize: 13,
+                    }}
+                  >
+                    {h.result}
+                  </div>
+                </details>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
