@@ -41,7 +41,12 @@ export default function App() {
   const handleModeChange = (newMode) => {
     if (newMode === "idea") {
       if (result) {
-        setInput(result);
+        const ideaInput = result;
+        setInput(ideaInput);
+        setResult("");
+        setMode(newMode);
+        runSurvey(newMode, ideaInput);
+        return;
       }
     } else {
       setInput("");
@@ -50,23 +55,23 @@ export default function App() {
     setMode(newMode);
   };
 
-  const handleSubmit = async () => {
-    if (!input.trim()) return;
+  const runSurvey = async (currentMode, currentInput) => {
+    if (!currentInput.trim()) return;
     setLoading(true);
     setResult("");
     try {
       const res = await fetch("https://x-survey-app.onrender.com/survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, input }),
+        body: JSON.stringify({ mode: currentMode, input: currentInput }),
       });
       const data = await res.json();
       setResult(data.result);
       const entry = {
         id: Date.now(),
-        mode,
-        modeLabel: MODES.find((m) => m.key === mode)?.label || mode,
-        input,
+        mode: currentMode,
+        modeLabel: MODES.find((m) => m.key === currentMode)?.label || currentMode,
+        input: currentInput,
         result: data.result,
         timestamp: new Date().toISOString(),
       };
@@ -76,6 +81,8 @@ export default function App() {
     }
     setLoading(false);
   };
+
+  const handleSubmit = () => runSurvey(mode, input);
 
   const saveTxt = () => {
     const blob = new Blob([result], { type: "text/plain;charset=utf-8" });
